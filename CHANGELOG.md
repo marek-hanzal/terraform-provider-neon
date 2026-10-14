@@ -5,6 +5,13 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [v0.17.0-serakki.2] - 2026-10-15 (local fork, unpublished)
+
+### Fixed
+
+- Detect function recreation from a changed function creation timestamp when Neon reuses the same function/deployment identifiers and environment names. Equivalent timestamp encodings do not trigger a deployment.
+- Match mock identity semantics and resource documentation to the live API, which may return the slug as the function ID and exposes no guaranteed generation-unique token.
+
 ## [v0.17.0-serakki.1] - 2026-10-15 (local fork, unpublished)
 
 ### Added

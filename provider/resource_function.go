@@ -72,7 +72,7 @@ func (r *functionResource) Schema(_ context.Context, _ resource.SchemaRequest, r
 		},
 		"function_id": schema.StringAttribute{
 			Computed:    true,
-			Description: "Opaque Neon identity, used with the deployment version to detect external deletion/recreation.",
+			Description: "Function identifier exactly as returned by Neon. It may equal the slug; generation uniqueness is not guaranteed.",
 		},
 		"project_id": backendIdentityAttribute("Neon project ID."),
 		"branch_id":  backendIdentityAttribute("Neon branch ID."),
@@ -114,7 +114,7 @@ func (r *functionResource) Schema(_ context.Context, _ resource.SchemaRequest, r
 		},
 		"created_at": schema.StringAttribute{
 			Computed:    true,
-			Description: "Function creation timestamp.",
+			Description: "Function creation timestamp, also compared as a time instant to detect recreation when identifiers are reused.",
 		},
 		"invocation_url": schema.StringAttribute{
 			Computed:    true,
@@ -401,6 +401,20 @@ func (r *functionResource) deploy(ctx context.Context, plan *functionModel, uplo
 	return fn, true, err
 }
 
+// Neon may reuse the slug as the function ID. Compare the function's creation
+// time as another generation signal, accepting equivalent timestamp encodings.
+func functionCreatedAtChanged(previous, current types.String) bool {
+	if previous.IsNull() || previous.IsUnknown() || previous.ValueString() == "" || previous.Equal(current) {
+		return false
+	}
+	previousTime, previousErr := time.Parse(time.RFC3339Nano, previous.ValueString())
+	currentTime, currentErr := time.Parse(time.RFC3339Nano, current.ValueString())
+	if previousErr != nil || currentErr != nil {
+		return true
+	}
+	return !previousTime.Equal(currentTime)
+}
+
 func (r *functionResource) Read(ctx context.Context, req resource.ReadRequest, resp *resource.ReadResponse) {
 	var state functionModel
 	resp.Diagnostics.Append(req.State.Get(ctx, &state)...)
@@ -423,11 +437,12 @@ func (r *functionResource) Read(ctx context.Context, req resource.ReadRequest, r
 		return
 	}
 	previousID, previousNames, previousFunctionID := state.CurrentDeploymentID, state.EnvironmentVariableNames, state.FunctionID
+	previousCreatedAt := state.CreatedAt
 	if err := setFunctionModel(ctx, &state, fn); err != nil {
 		resp.Diagnostics.AddError("Unable to Set Function State", err.Error())
 		return
 	}
-	drift := (!previousID.IsNull() && !previousID.Equal(state.CurrentDeploymentID)) || (!previousFunctionID.IsNull() && !previousFunctionID.Equal(state.FunctionID))
+	drift := (!previousID.IsNull() && !previousID.Equal(state.CurrentDeploymentID)) || (!previousFunctionID.IsNull() && !previousFunctionID.Equal(state.FunctionID)) || functionCreatedAtChanged(previousCreatedAt, state.CreatedAt)
 	if !state.EnvironmentVariables.IsNull() {
 		names := make([]string, 0, len(state.EnvironmentVariables.Elements()))
 		for key := range state.EnvironmentVariables.Elements() {

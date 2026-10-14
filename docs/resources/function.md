@@ -33,7 +33,7 @@ Code, runtime and environment changes create a new deployment in place. Only pro
 
 `source_code_hash` is the base64 SHA256 of the ZIP bytes, calculated at plan time even when the filename does not change. An explicit hash must match. Apply rechecks the archive against the planned hash. Build the archive before planning, and keep it unchanged until apply.
 
-Neon returns environment names, never values or a bundle digest. The provider detects external changes using opaque function identity, deployment ID, names and metadata. It redeploys managed code/environment after observed drift. It cannot compare remote secret values or code bytes directly. Omit `environment_variables` to leave it unmanaged; use `{}` to remove all user keys. Values must be nonempty; keys removed from the map are sent as API deletion tombstones. Sensitive values remain in Terraform state.
+Neon returns environment names, never values or a bundle digest. The provider detects external changes using the returned function identifier, function creation timestamp, deployment ID, names and metadata. The function identifier may equal the slug and is not assumed to be unique across recreations. A changed function creation time triggers reconciliation even when identifiers repeat; equivalent timestamp encodings do not. The API does not expose a guaranteed generation-unique token, so detection is limited to changes in the returned metadata. It redeploys managed code/environment after observed drift. It cannot compare remote secret values or code bytes directly. Omit `environment_variables` to leave it unmanaged; use `{}` to remove all user keys. Values must be nonempty; keys removed from the map are sent as API deletion tombstones. Sensitive values remain in Terraform state.
 
 Import leaves ZIP/hash/environment unmanaged until configured. To enable code management after import, provide a local ZIP; the next plan deploys it in place. `name` defaults to the slug and `runtime` defaults to `nodejs24`.
 
@@ -58,11 +58,11 @@ Import leaves ZIP/hash/environment unmanaged until configured. To enable code ma
 ### Read-Only
 
 - `active_deployment_id` (Number) Version currently serving invocations.
-- `created_at` (String) Function creation timestamp.
+- `created_at` (String) Function creation timestamp, also compared as a time instant to detect recreation when identifiers are reused.
 - `current_deployment_id` (Number) Latest deployment version, including pending or failed deployments.
 - `current_deployment_status` (String) Latest deployment status: pending, building, completed or failed.
 - `environment_variable_names` (Set of String) Names of the latest deployment's user environment variables.
-- `function_id` (String) Opaque Neon identity, used with the deployment version to detect external deletion/recreation.
+- `function_id` (String) Function identifier exactly as returned by Neon. It may equal the slug; generation uniqueness is not guaranteed.
 - `id` (String) Composite ID: <project_id>/<branch_id>/<slug>.
 - `invocation_url` (String) Neon invocation URL, exactly as returned by the API.
 

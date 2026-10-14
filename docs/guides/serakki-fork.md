@@ -4,7 +4,7 @@ page_title: "Serakki fork: local build and integration"
 
 # Serakki fork: local build and integration
 
-This fork extends official `neondatabase/terraform-provider-neon` with three resources. It is not published to the Terraform Registry. Its local installation address is `registry.terraform.io/marek-hanzal/neon`, version `0.17.0-serakki.1`. The SDK is pinned to `github.com/kislerdm/neon-sdk-go v0.30.1`; the Go module retains its upstream path.
+This fork extends official `neondatabase/terraform-provider-neon` with three resources. It is not published to the Terraform Registry. Its local installation address is `registry.terraform.io/marek-hanzal/neon`, version `0.17.0-serakki.2`. The SDK is pinned to `github.com/kislerdm/neon-sdk-go v0.30.1`; the Go module retains its upstream path.
 
 ## Toolchain and build
 
@@ -55,7 +55,7 @@ terraform {
   required_providers {
     neon = {
       source  = "marek-hanzal/neon"
-      version = "= 0.17.0-serakki.1"
+      version = "= 0.17.0-serakki.2"
     }
     bunnynet = {
       source  = "BunnyWay/bunnynet"
@@ -184,7 +184,7 @@ The dependency chain is project/database → managed Auth → function → custo
 | `neon_custom_branch_domain` | `PROJECT/BRANCH/DOMAIN` | project/branch/domain/entity binding | none | `cname_target`, `status`, `dns_status`, `binding_status`, `status_reason` |
 | `neon_branch_auth` | `PROJECT/BRANCH/DATABASE` | project/branch/database | none | `base_url`, `jwks_url`, `auth_provider`, `auth_provider_project_id`, `owned_by` |
 
-Function code/runtime/env changes deploy in place. The waiter accepts only the requested deployment ID after it is completed and active; it returns errors for failure, supersession, timeout and cancellation. An accepted deployment retains identity on failure so Terraform can recover. API errors are errors rather than warnings. Read/404 removes missing resources from state; other HTTP errors retain state. The function's opaque identity detects delete/recreate even if deployment numbering repeats. Metadata and environment names are read back. Neon never returns env values or remote ZIP hashes, so direct value/byte comparison is unavailable; external identity/deployment changes invalidate managed inputs and cause reconciliation.
+Function code/runtime/env changes deploy in place. The waiter accepts only the requested deployment ID after it is completed and active; it returns errors for failure, supersession, timeout and cancellation. An accepted deployment retains identity on failure so Terraform can recover. API errors are errors rather than warnings. Read/404 removes missing resources from state; other HTTP errors retain state. The function identifier may equal the slug. Read also compares the function creation timestamp as a generation signal, so a changed creation time triggers reconciliation even when function/deployment identifiers repeat. Equivalent timestamps with different offsets or fractional precision are treated as the same instant. The API has no guaranteed generation-unique token, so detection is limited to changes in the returned metadata. Metadata and environment names are read back. Neon never returns env values or remote ZIP hashes, so direct value/byte comparison is unavailable; external identity/deployment changes invalidate managed inputs and cause reconciliation.
 
 `environment_variables` omitted means unmanaged; `{}` removes user variables by sending explicit deletion tombstones. Nonempty configured values stay sensitive in Terraform output but remain present in state. Empty values cannot be used as stored values because the API interprets them as deletion. After import, code/environment remain unmanaged until explicitly configured. A configured local ZIP is deployed in place at the next apply.
 

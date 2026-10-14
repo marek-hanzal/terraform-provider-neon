@@ -79,6 +79,7 @@ type backendMock struct {
 	mu           sync.Mutex
 	exists       bool
 	functionID   string
+	createdAt    string
 	name         string
 	version      int
 	readCount    int
@@ -109,7 +110,11 @@ func (m *backendMock) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	path := strings.TrimPrefix(r.URL.Path, "/api/v2/projects/p/branches/b")
 	functionID := m.functionID
 	if functionID == "" {
-		functionID = "opaque-function-id"
+		functionID = "api"
+	}
+	createdAt := m.createdAt
+	if createdAt == "" {
+		createdAt = "2026-10-15T00:00:00Z"
 	}
 	switch {
 	case path == "/functions/api/deployments" && r.Method == "POST":
@@ -192,7 +197,7 @@ func (m *backendMock) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		}
 		sort.Strings(names)
 		d := map[string]any{"id": m.version, "status": status, "runtime": "nodejs24", "environment": names, "memory_mib": 2048, "created_at": "2026-10-15T00:00:00Z"}
-		fn := map[string]any{"id": functionID, "slug": "api", "name": m.name, "created_at": "2026-10-15T00:00:00Z", "invocation_url": "https://invoke.neon.example/", "current_deployment": d}
+		fn := map[string]any{"id": functionID, "slug": "api", "name": m.name, "created_at": createdAt, "invocation_url": "https://invoke.neon.example/", "current_deployment": d}
 		if status == "completed" {
 			fn["active_deployment"] = d
 		}
@@ -210,7 +215,7 @@ func (m *backendMock) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		}
 		m.name = body.Name
 		m.renamed++
-		m.json(w, map[string]any{"function": map[string]any{"id": functionID, "slug": "api", "name": m.name, "created_at": "2026-10-15T00:00:00Z", "invocation_url": "https://invoke.neon.example/", "current_deployment": map[string]any{"id": m.version, "status": "completed", "runtime": "nodejs24", "environment": m.names()}, "active_deployment": map[string]any{"id": m.version, "status": "completed", "runtime": "nodejs24"}}})
+		m.json(w, map[string]any{"function": map[string]any{"id": functionID, "slug": "api", "name": m.name, "created_at": createdAt, "invocation_url": "https://invoke.neon.example/", "current_deployment": map[string]any{"id": m.version, "status": "completed", "runtime": "nodejs24", "environment": m.names()}, "active_deployment": map[string]any{"id": m.version, "status": "completed", "runtime": "nodejs24"}}})
 	case path == "/functions/api" && r.Method == "DELETE":
 		m.exists = false
 		m.deletes++
@@ -348,10 +353,17 @@ resource "neon_function" "api" {
 		{Config: config("Renamed API", "{}"), Check: check(4, 2, map[string]string{})},
 		{ResourceName: "neon_function.api", ImportState: true, ImportStateVerify: true, ImportStateVerifyIgnore: []string{"zip_file_path", "source_code_hash", "environment_variables"}},
 		{PreConfig: func() { m.mu.Lock(); defer m.mu.Unlock(); m.version++; m.env["EXTERNAL"] = "drift"; m.readCount = 3 }, Config: config("Renamed API", "{}"), Check: check(5, 3, map[string]string{})},
-		{PreConfig: func() { m.mu.Lock(); defer m.mu.Unlock(); m.functionID = "replacement-id"; m.readCount = 3 }, Config: config("Renamed API", "{}"), Check: check(6, 4, map[string]string{})},
-		{PreConfig: func() { m.mu.Lock(); defer m.mu.Unlock(); m.exists = false }, Config: config("Renamed API", "{}"), Check: check(7, 5, map[string]string{})},
+		{PreConfig: func() { m.mu.Lock(); defer m.mu.Unlock(); m.createdAt = "2026-10-15T01:00:00.963066Z"; m.readCount = 3 }, Config: config("Renamed API", "{}"), Check: check(6, 4, map[string]string{})},
+		{PreConfig: func() {
+			m.mu.Lock()
+			defer m.mu.Unlock()
+			m.createdAt = "2026-10-15T03:00:00.963066000+02:00"
+			m.readCount = 3
+		}, Config: config("Renamed API", "{}"), Check: check(6, 4, map[string]string{})},
+		{PreConfig: func() { m.mu.Lock(); defer m.mu.Unlock(); m.functionID = "replacement-id"; m.readCount = 3 }, Config: config("Renamed API", "{}"), Check: check(7, 5, map[string]string{})},
+		{PreConfig: func() { m.mu.Lock(); defer m.mu.Unlock(); m.exists = false }, Config: config("Renamed API", "{}"), Check: check(8, 6, map[string]string{})},
 		{PreConfig: func() { m.mu.Lock(); defer m.mu.Unlock(); m.fail = true }, Config: config("Renamed API", `{ FOO = "after failure" }`), ExpectError: regexp.MustCompile("synthetic build failure")},
-		{PreConfig: func() { m.mu.Lock(); defer m.mu.Unlock(); m.fail = false }, Config: config("Renamed API", `{ FOO = "after failure" }`), Check: check(9, 6, map[string]string{"FOO": "after failure"})},
+		{PreConfig: func() { m.mu.Lock(); defer m.mu.Unlock(); m.fail = false }, Config: config("Renamed API", `{ FOO = "after failure" }`), Check: check(10, 7, map[string]string{"FOO": "after failure"})},
 	}})
 }
 
@@ -543,4 +555,26 @@ func TestFunctionArchiveHashGuardsAndEnvironmentPatch(t *testing.T) {
 	patch, err = functionEnvironment(context.Background(), types.MapNull(types.StringType), []string{"KEEP"})
 	require.NoError(t, err)
 	require.Nil(t, patch)
+}
+
+func TestFunctionCreatedAtChanged(t *testing.T) {
+	original := types.StringValue("2026-10-15T01:00:00.963066Z")
+	for _, tc := range []struct {
+		name     string
+		previous types.String
+		current  types.String
+		changed  bool
+	}{
+		{"same value", original, original, false},
+		{"equivalent precision and offset", original, types.StringValue("2026-10-15T03:00:00.963066000+02:00"), false},
+		{"new generation", original, types.StringValue("2026-10-15T01:00:00.963067Z"), true},
+		{"import without prior timestamp", types.StringNull(), original, false},
+		{"partial create without prior timestamp", types.StringValue(""), original, false},
+		{"unknown prior timestamp", types.StringUnknown(), original, false},
+		{"changed unparseable timestamp", original, types.StringValue("unrecognized timestamp"), true},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			require.Equal(t, tc.changed, functionCreatedAtChanged(tc.previous, tc.current))
+		})
+	}
 }
