@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- Add `neon_function` for prebuilt ZIP deployments, in-place code/environment updates, import and deployment status tracking.
+- Add `neon_custom_branch_domain` for branch-scoped function domains and the API-returned DNS CNAME target.
+- Add `neon_branch_auth` for Neon-managed Better Auth enablement, import and disabling without deleting user data.
+
 ### Changed
 
 - Update the Neon Go SDK from v0.20.0 to v0.30.1 and adapt branch deletion calls to its current signature.
