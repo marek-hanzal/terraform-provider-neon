@@ -1,0 +1,29 @@
+[tools]
+go = "1.27.2"
+terraform = "1.16.5"
+golangci-lint = "2.14.0"
+
+[env]
+GOTOOLCHAIN = "local"
+
+[tasks.build]
+description = "Build the Serakki fork provider"
+run = "make build"
+
+[tasks.install]
+description = "Build and install into build/mirror, without changing home configuration"
+run = "make install"
+
+[tasks.crossbuild]
+description = "Build all six supported platform binaries"
+run = "make crossbuild"
+
+[tasks.test]
+description = "Run local unit and mocked Terraform lifecycle tests"
+run = "go test ./..."
+
+[tasks.lint]
+run = "make lint"
+
+[tasks.docs]
+run = "go generate ./..."

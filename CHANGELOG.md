@@ -5,6 +5,19 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [v0.17.0-serakki.1] - 2026-10-15 (local fork, unpublished)
+
+### Added
+
+- Branch-scoped `neon_function`, with content hashing, in-place deployments, environment reconciliation, import, drift detection, and bounded cancellable activation polling.
+- `neon_custom_branch_domain`, exporting the exact computed CNAME target and domain status for declarative DNS integration.
+- Minimal `neon_branch_auth` for Neon-managed Better Auth enablement, read, import and disable while retaining Auth data.
+- Mock HTTP/Terraform lifecycle coverage, pinned mise tooling, deterministic offline ZIP packaging, and a local provider mirror for Serakki.
+
+### Changed
+
+- Updated Neon Go SDK from v0.20.0 to v0.30.1; removed the obsolete branch-deletion `hardDelete` argument.
+
 ## [v0.17.0] - 2026-09-08
 
 ### Added

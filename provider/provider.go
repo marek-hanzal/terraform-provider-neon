@@ -22,7 +22,8 @@ import (
 	"github.com/neondatabase/terraform-provider-neon/provider/telemetry"
 )
 
-const Name = "neondatabase/neon"
+// Name defaults to the upstream address. Fork builds set it with -ldflags -X.
+var Name = "neondatabase/neon"
 
 func init() {
 	rand.New(rand.NewSource(time.Now().Unix()))
@@ -155,6 +156,9 @@ func (p *frameworkProvider) Configure(ctx context.Context, req frameworkprovider
 func (p *frameworkProvider) Resources(_ context.Context) []func() resource.Resource {
 	return []func() resource.Resource{
 		NewBranchBackupScheduleResource,
+		NewFunctionResource,
+		NewCustomBranchDomainResource,
+		NewBranchAuthResource,
 	}
 }
 

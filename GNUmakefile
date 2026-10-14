@@ -1,35 +1,43 @@
-TEST?=$$(go list ./... | grep -v 'vendor')
-HOSTNAME=hashicorp.com
-NAMESPACE=neondatabase
-NAME=neon
-VERSION=dev
-BINARY=terraform-provider-${NAME}_v${VERSION}
-OS_ARCH=darwin_arm64
+NAMESPACE ?= marek-hanzal
+NAME := neon
+VERSION ?= 0.17.0-serakki.1
+GOOS ?= $(shell go env GOOS)
+GOARCH ?= $(shell go env GOARCH)
+OS_ARCH := $(GOOS)_$(GOARCH)
+BINARY := terraform-provider-$(NAME)_v$(VERSION)
+BUILD_DIR ?= build
+MIRROR := $(abspath $(BUILD_DIR)/mirror)
+INSTALL_DIR := $(MIRROR)/registry.terraform.io/$(NAMESPACE)/$(NAME)/$(VERSION)/$(OS_ARCH)
+LDFLAGS := -s -w -X main.version=$(VERSION) -X github.com/neondatabase/terraform-provider-neon/provider.Name=$(NAMESPACE)/$(NAME)
 
-.PHONY: testacc build install test
+.PHONY: help build install test testacc docu lint crossbuild
 
-help: ## Prints help message.
-	@ grep -h -E '^[a-zA-Z0-9_-].+:.*?## .*$$' $(MAKEFILE_LIST) | awk 'BEGIN {FS = ":.*?## "}; {printf "\033[1m%-30s\033[0m %s\n", $$1, $$2}'
+help: ## Show local commands. Run through mise exec or mise run.
+	@awk 'BEGIN {FS = ":.*?## "} /^[a-zA-Z0-9_-]+:.*?## / {printf "%-20s %s\n", $$1, $$2}' $(MAKEFILE_LIST)
 
-default: help
+build: ## Build a reproducible provider binary for GOOS/GOARCH.
+	@mkdir -p $(BUILD_DIR)/$(OS_ARCH)
+	CGO_ENABLED=0 GOTOOLCHAIN=local GOOS=$(GOOS) GOARCH=$(GOARCH) go build -mod=readonly -trimpath -buildvcs=false -ldflags='$(LDFLAGS)' -o $(BUILD_DIR)/$(OS_ARCH)/$(BINARY)$(if $(filter windows,$(GOOS)),.exe,) .
 
-build:
-	@ go build -a -gcflags=all="-l -B -C" -ldflags="-w -s -X main.version=$(VERSION)" -o ${BINARY} .
+install: build ## Install into the checkout's filesystem mirror; write its CLI config.
+	@mkdir -p $(INSTALL_DIR)
+	cp $(BUILD_DIR)/$(OS_ARCH)/$(BINARY)$(if $(filter windows,$(GOOS)),.exe,) $(INSTALL_DIR)/
+	@printf 'provider_installation {\n  filesystem_mirror {\n    path = "$(MIRROR)"\n    include = ["registry.terraform.io/$(NAMESPACE)/$(NAME)"]\n  }\n  direct {\n    exclude = ["registry.terraform.io/$(NAMESPACE)/$(NAME)"]\n  }\n}\n' > $(BUILD_DIR)/terraform.rc
+	@printf 'TF_CLI_CONFIG_FILE=%s\n' '$(abspath $(BUILD_DIR)/terraform.rc)'
 
-install: build ## Builds and installs the provider.
-	@ mkdir -p ~/.terraform.d/plugins/local/${NAMESPACE}/${NAME}/${VERSION}/${OS_ARCH}
-	@ mv ${BINARY} ~/.terraform.d/plugins/local/${NAMESPACE}/${NAME}/${VERSION}/${OS_ARCH}/
-	@ echo Local provider: local/${NAMESPACE}/${NAME}
+crossbuild: ## Build and install supported darwin/linux/windows amd64/arm64 binaries.
+	@for platform in darwin_amd64 darwin_arm64 linux_amd64 linux_arm64 windows_amd64 windows_arm64; do \
+		$(MAKE) install GOOS=$${platform%_*} GOARCH=$${platform#*_} || exit 1; \
+	done
 
-test: ## Runs unit tests.
-	@ go test $(TEST) || exit 1
-	@ echo $(TEST) | xargs -t -n4 go test $(TESTARGS) -timeout=30s -parallel=4
+test: ## Run unit and mocked Terraform lifecycle tests without Neon credentials.
+	go test ./...
 
-testacc: ## Runs acceptance tests.
-	@ TF_ACC=1 go test -tags=acceptance -v -timeout 120m ./...
+testacc: ## Run the existing live suite (creates real resources).
+	TF_ACC=1 go test -tags=acceptance -v -timeout 120m ./...
 
-docu: ## Generates docu.
-	@ go generate
+docu: ## Format examples and generate registry documentation.
+	go generate ./...
 
-lint: ## Runs the linter.
-	@ golangci-lint run -c .golangci.yml --timeout 10m || echo 'install golangci-lint'
+lint: ## Run the pinned linter and fail on findings.
+	golangci-lint run --timeout 3m

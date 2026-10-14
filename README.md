@@ -1,5 +1,10 @@
 # Terraform Provider Neon
 
+This checkout is the unpublished Serakki fork. Its local provider address is
+`marek-hanzal/neon`, pinned to `0.17.0-serakki.1`. See the
+[build and integration guide](docs/guides/serakki-fork.md) for the local mirror,
+Functions, managed Better Auth, custom domains and Bunny DNS example.
+
 -----
 
 <div align="center">
@@ -81,7 +86,9 @@ Run to compile the provider:
 make build
 ```
 
-It will yield the binary `terraform-provider-neon_vdev`.
+It yields `build/<os>_<arch>/terraform-provider-neon_v0.17.0-serakki.1`
+(with `.exe` on Windows). Run these commands through `mise exec --` after
+`mise install` to use the pinned toolchain.
 
 Run to install the provider locally:
 
@@ -89,9 +96,11 @@ Run to install the provider locally:
 make install
 ```
 
-It will yield the path to the built binary.
+It writes the provider into `build/mirror` and prints the absolute path of a
+Terraform CLI configuration. Set `TF_CLI_CONFIG_FILE` to that file for this
+checkout's consumers. It does not modify the global Terraform configuration.
 
-To generate or update documentation, run `go docu`.
+To generate or update documentation, run `make docu`.
 
 In order to run the full suite of Unit tests, run `make test`.
 
