@@ -47,6 +47,8 @@ Build the ZIP before `terraform plan`. Keep it available and unchanged until app
 
 This is an integration reference. Apply it as the existing Serakki infrastructure owner's work, with the appropriate remote backend/state and environment. Do not create a second state claiming resources that are already managed elsewhere. The example defaults to dev; prod deployment requires a separate explicit decision.
 
+Leave `neon_project.store_password` unset to use its supported default. The live Neon API currently rejects `store_password = "no"` with HTTP 400, even though the provider schema accepts it. Project role passwords are sensitive values in Terraform state; use the existing private state backend.
+
 ```terraform
 terraform {
   required_version = "= 1.16.5"
@@ -93,7 +95,6 @@ resource "neon_project" "app" {
   region_id                 = "aws-eu-central-1"
   pg_version                = 17
   history_retention_seconds = 21600
-  store_password            = "no"
 
   branch {
     name          = var.environment

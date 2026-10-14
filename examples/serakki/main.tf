@@ -43,7 +43,6 @@ resource "neon_project" "app" {
   region_id                 = "aws-eu-central-1"
   pg_version                = 17
   history_retention_seconds = 21600
-  store_password            = "no"
 
   branch {
     name          = var.environment
