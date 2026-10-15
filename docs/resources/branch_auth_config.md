@@ -11,6 +11,11 @@ Manages selected settings of an existing Neon-managed Better Auth integration. C
 ## Example Usage
 
 ```terraform
+variable "auth_smtp_password" {
+  type      = string
+  sensitive = true
+}
+
 resource "neon_branch_auth_config" "app" {
   # References order configuration after managed Auth enablement.
   project_id       = neon_branch_auth.app.project_id
@@ -31,13 +36,25 @@ resource "neon_branch_auth_config" "app" {
     require_email_verification = true
   }
 
+  email_provider = {
+    type         = "standard"
+    host         = "smtp.example.com"
+    port         = 465
+    username     = "smtp-user"
+    password     = var.auth_smtp_password
+    sender_email = "login@example.com"
+    sender_name  = "Example App"
+  }
+
   trusted_domains = ["https://app.example.com", "https://*.preview.example.com"]
 }
 ```
 
 Create configures an **existing**, Neon-owned Better Auth integration on the requested database. Enable it with `neon_branch_auth` first; references in the example establish the dependency. Manage only one config resource per branch, in one state. Database/branch/project changes replace only the logical config resource. Configuration never calls Auth enable/disable, user/session operations or email-send endpoints.
 
-All settings and nested fields are optional, with no provider defaults. Omitted/null values are unmanaged. Refresh reads actual remote values only for managed fields, so Console changes produce a corrective plan. Removing a field releases ownership without resetting its remote value. An empty nested object owns no fields and sends no PATCH. Explicit `false` is an update. Magic Link `disable_sign_up = false` allows new registrations; `expires_in_minutes` maps to API `expires_in` in **minutes**, from 5 to 1440.
+All top-level settings are optional, with no provider defaults. Nested fields are optional except `email_provider.type`, which must be `standard` when the SMTP object is configured. Omitted/null values are unmanaged. Refresh reads actual remote values only for managed fields, so Console changes produce a corrective plan. Removing a field releases ownership without resetting its remote value. An empty Magic Link or email/password object owns no fields and sends no PATCH. Explicit `false` is an update. Magic Link `disable_sign_up = false` allows new registrations; `expires_in_minutes` maps to API `expires_in` in **minutes**, from 5 to 1440.
+
+`email_provider` manages custom SMTP using `type = "standard"`. Configure all SMTP fields when first switching from Neon's shared sender; subsequent partial updates preserve omitted fields server-side. Host, username and password are sensitive. Configured passwords remain in Terraform state; secure the state backend. A nonempty GET password detects drift, while an empty (redacted) GET preserves the known configured value and cannot reveal external password rotation. PATCH responses are never used as state. Omitted/imported credentials are never captured. Switching the remote provider to `shared` creates drift; the corrective apply resends all configured SMTP fields. Removing the object leaves remote SMTP unchanged. The resource never sends a test email, and SMTP API/decoding diagnostics suppress response details that could contain credentials.
 
 `trusted_domains` is authoritative for Better Auth entries only. Include the scheme and omit paths/trailing slashes. An empty set removes all Better Auth redirect origins; omission leaves them unmanaged. Updates list fresh remote entries, add missing origins before removing obsolete ones, and leave other auth-provider entries unchanged. This supports retry after partial failure without duplicate additions. Avoid other writers managing the same settings during apply.
 
@@ -45,7 +62,7 @@ The resource records the Auth integration ID. A different database, owner, provi
 
 Destroy only relinquishes management, leaving the remote configuration and all users intact. To disable a feature, set its enabled field to `false` before removing this resource. Removing `neon_branch_auth` separately still disables the integration with `delete_data=false`.
 
-The scope is the managed Neon subset: Magic Link, email/password, redirect origins, localhost and application name. Application name uses the officially documented `/auth/config` endpoint, currently marked `x-internal` in OpenAPI, and is read from `/auth.name`. A missing name or missing managed plugin configuration is an error rather than a guessed default. OAuth credentials, SMTP, phone-number configuration, users, sessions, UI and tenancy are outside this resource. See [API mapping and validation scope](../guides/managed-auth-settings.md).
+The scope is the managed Neon subset: Magic Link, email/password, redirect origins, localhost, application name and custom SMTP. Application name uses the officially documented `/auth/config` endpoint, currently marked `x-internal` in OpenAPI, and is read from `/auth.name`. A missing name or missing managed plugin configuration is an error rather than a guessed default. OAuth credentials, phone-number configuration, users, sessions, UI and tenancy are outside this resource. See [API mapping and validation scope](../guides/managed-auth-settings.md).
 
 <!-- schema generated by tfplugindocs -->
 ## Schema
@@ -61,6 +78,7 @@ The scope is the managed Neon subset: Magic Link, email/password, redirect origi
 - `allow_localhost` (Boolean) Allow authentication from localhost origins. Omit to leave unmanaged.
 - `application_name` (String) Application name shown in Auth emails, 1–256 characters. Omit to leave unmanaged.
 - `email_and_password` (Attributes) Managed email/password settings. Each omitted field is unmanaged. (see [below for nested schema](#nestedatt--email_and_password))
+- `email_provider` (Attributes) Custom SMTP provider for Auth emails. Set type to standard; omitted fields are unmanaged and preserve stored values. Removing this object leaves the remote provider unchanged. No email is sent. (see [below for nested schema](#nestedatt--email_provider))
 - `magic_link` (Attributes) Managed Magic Link settings. Each omitted field is unmanaged; no defaults are imposed. (see [below for nested schema](#nestedatt--magic_link))
 - `trusted_domains` (Set of String) Authoritative set of Better Auth redirect origins, including http(s) scheme and no trailing slash. Wildcard hostnames are supported. Omit to leave unmanaged; an empty set removes all Better Auth entries. Other auth providers are untouched.
 
@@ -81,6 +99,23 @@ Optional:
 - `require_email_verification` (Boolean) Require email verification before sign-in. Omit to leave unmanaged.
 - `send_verification_email_on_sign_in` (Boolean) Send verification email when an unverified user signs in. Omit to leave unmanaged.
 - `send_verification_email_on_sign_up` (Boolean) Send verification email on sign-up. Omit to leave unmanaged.
+
+
+<a id="nestedatt--email_provider"></a>
+### Nested Schema for `email_provider`
+
+Required:
+
+- `type` (String) Custom SMTP provider type: standard.
+
+Optional:
+
+- `host` (String, Sensitive) SMTP server hostname. Omit to leave unmanaged.
+- `password` (String, Sensitive) SMTP password. Stored in Terraform state when configured. A redacted GET preserves the known value; password drift is detectable only when Neon returns the stored password. Omit to leave unmanaged.
+- `port` (Number) SMTP TCP port, 1–65535. Common values: 465 or 587. Omit to leave unmanaged.
+- `sender_email` (String) From address for Auth emails. Omit to leave unmanaged.
+- `sender_name` (String) Sender display name for Auth emails. Omit to leave unmanaged.
+- `username` (String, Sensitive) SMTP username. Omit to leave unmanaged.
 
 
 <a id="nestedatt--magic_link"></a>

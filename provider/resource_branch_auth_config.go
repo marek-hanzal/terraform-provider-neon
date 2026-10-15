@@ -28,6 +28,7 @@ type branchAuthConfigModel struct {
 	AllowLocalhost        types.Bool              `tfsdk:"allow_localhost"`
 	MagicLink             *authMagicLinkModel     `tfsdk:"magic_link"`
 	EmailAndPassword      *authEmailPasswordModel `tfsdk:"email_and_password"`
+	EmailProvider         *authEmailProviderModel `tfsdk:"email_provider"`
 	TrustedDomains        types.Set               `tfsdk:"trusted_domains"`
 }
 

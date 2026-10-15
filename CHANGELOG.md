@@ -5,6 +5,14 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [v0.17.0-serakki.4] - 2026-10-15 (fork)
+
+### Added
+
+- Manage custom SMTP through `neon_branch_auth_config.email_provider`, with typed partial updates and per-field ownership.
+- Mark SMTP host, username and password sensitive; preserve known passwords when Neon redacts read-back, detect readable credential drift, and suppress credential-bearing API diagnostics.
+- Cover SMTP plan/apply/refresh/import/removal, credential rotation and omission, shared-provider drift and integration identity refusal with local HTTP/Terraform fixtures.
+
 ## [v0.17.0-serakki.3] - 2026-10-15 (fork)
 
 ### Added

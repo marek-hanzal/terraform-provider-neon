@@ -37,6 +37,8 @@ type authSettingsMock struct {
 	deleteData                bool
 	name                      string
 	magic, email              map[string]any
+	smtp                      map[string]any
+	redactSMTPPassword        bool
 	localhost                 bool
 	domains                   map[string]map[string]bool
 	calls                     []authSettingsCall
@@ -47,9 +49,11 @@ type authSettingsMock struct {
 
 func newAuthSettingsMock(t *testing.T) *authSettingsMock {
 	return &authSettingsMock{t: t, name: "Default", localhost: true,
-		magic:   map[string]any{"enabled": false, "expires_in": float64(5), "disable_sign_up": false},
-		email:   map[string]any{"enabled": true, "email_verification_method": "link", "require_email_verification": false, "auto_sign_in_after_verification": true, "send_verification_email_on_sign_up": false, "send_verification_email_on_sign_in": true, "disable_sign_up": true},
-		domains: map[string]map[string]bool{"better_auth": {"https://old.example.com": true}, "stack": {"https://legacy.example.com": true}},
+		magic:              map[string]any{"enabled": false, "expires_in": float64(5), "disable_sign_up": false},
+		email:              map[string]any{"enabled": true, "email_verification_method": "link", "require_email_verification": false, "auto_sign_in_after_verification": true, "send_verification_email_on_sign_up": false, "send_verification_email_on_sign_in": true, "disable_sign_up": true},
+		smtp:               map[string]any{"type": "shared", "sender_email": "shared@example.com", "sender_name": "Shared"},
+		redactSMTPPassword: true,
+		domains:            map[string]map[string]bool{"better_auth": {"https://old.example.com": true}, "stack": {"https://legacy.example.com": true}},
 	}
 }
 
@@ -99,6 +103,15 @@ func (m *authSettingsMock) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 			respond(v)
 		case "/email_and_password":
 			respond(m.email)
+		case "/email_provider":
+			values := map[string]any{}
+			for key, value := range m.smtp {
+				values[key] = value
+			}
+			if m.redactSMTPPassword && values["type"] == "standard" {
+				values["password"] = ""
+			}
+			respond(values)
 		case "/allow_localhost":
 			respond(map[string]any{"allow_localhost": m.localhost})
 		case "/domains":
@@ -158,6 +171,17 @@ func (m *authSettingsMock) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 			m.email[key] = value
 		}
 		respond(m.email)
+	case p == "/email_provider" && r.Method == "PATCH":
+		require.Equal(m.t, "standard", body["type"])
+		for key, value := range body {
+			m.smtp[key] = value
+		}
+		values := map[string]any{}
+		for key, value := range m.smtp {
+			values[key] = value
+		}
+		values["password"] = ""
+		respond(values)
 	case p == "/allow_localhost" && r.Method == "PATCH":
 		m.localhost = body["allow_localhost"].(bool)
 		respond(map[string]any{"allow_localhost": m.localhost})

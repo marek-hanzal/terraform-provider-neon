@@ -3,7 +3,7 @@ terraform {
   required_providers {
     neon = {
       source  = "marek-hanzal/neon"
-      version = "= 0.17.0-serakki.3"
+      version = "= 0.17.0-serakki.4"
     }
     bunnynet = {
       source  = "BunnyWay/bunnynet"

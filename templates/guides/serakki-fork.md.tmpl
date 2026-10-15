@@ -4,7 +4,7 @@ page_title: "Serakki fork: local build and integration"
 
 # Serakki fork: local build and integration
 
-This fork extends official `neondatabase/terraform-provider-neon` with four resources. It is not published to the Terraform Registry. Its local installation address is `registry.terraform.io/marek-hanzal/neon`, version `0.17.0-serakki.3`. The SDK is pinned to `github.com/kislerdm/neon-sdk-go v0.30.1`; the Go module retains its upstream path.
+This fork extends official `neondatabase/terraform-provider-neon` with four resources. It is not published to the Terraform Registry. Its local installation address is `registry.terraform.io/marek-hanzal/neon`, version `0.17.0-serakki.4`. The SDK is pinned to `github.com/kislerdm/neon-sdk-go v0.30.1`; the Go module retains its upstream path.
 
 ## Maintained fork branch
 
@@ -79,7 +79,7 @@ Function code/runtime/env changes deploy in place. The waiter accepts only the r
 
 `environment_variables` omitted means unmanaged; `{}` removes user variables by sending explicit deletion tombstones. Nonempty configured values stay sensitive in Terraform output but remain present in state. Empty values cannot be used as stored values because the API interprets them as deletion. After import, code/environment remain unmanaged until explicitly configured. A configured local ZIP is deployed in place at the next apply.
 
-The separate `neon_branch_auth_config` manages selected Magic Link, email/password, application name, localhost and redirect origin settings. See [managed Auth settings](managed-auth-settings.md) for field ownership, API mapping and the validation boundary. Config removal leaves remote settings unchanged.
+The separate `neon_branch_auth_config` manages selected Magic Link, email/password, application name, localhost, redirect origin and custom SMTP settings. See [managed Auth settings](managed-auth-settings.md) for field ownership, API mapping and the validation boundary. Config removal leaves remote settings unchanged.
 
 Auth enablement is managed Better Auth only, one integration per branch. It exports service/JWKS URLs, does not store the API's `secret_server_key`, and does not configure users/OAuth/email. Destroy disables with `delete_data=false`, retaining Auth schema and user data. A foreign Auth provider, unmanaged owner, or integration on a different database returns an error instead of silently taking ownership.
 

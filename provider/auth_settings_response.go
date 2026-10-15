@@ -22,7 +22,7 @@ func (c authSettingsHTTPClient) Do(req *http.Request) (*http.Response, error) {
 	if err != nil || resp == nil || req.Method != http.MethodGet || resp.StatusCode < 200 || resp.StatusCode >= 300 {
 		return resp, err
 	}
-	suffixes := []string{"/auth/plugins", "/auth/email_and_password", "/auth/allow_localhost", "/auth/domains"}
+	suffixes := []string{"/auth/plugins", "/auth/email_and_password", "/auth/email_provider", "/auth/allow_localhost", "/auth/domains"}
 	matched := false
 	for _, suffix := range suffixes {
 		if strings.HasSuffix(req.URL.Path, suffix) {
@@ -65,6 +65,19 @@ func authResponseObject(body []byte, required ...string) (map[string]json.RawMes
 
 func validateAuthSettingsResponse(path string, body []byte) error {
 	switch {
+	case strings.HasSuffix(path, "/auth/email_provider"):
+		fields, err := authResponseObject(body, "type")
+		if err != nil {
+			return err
+		}
+		var kind string
+		if err := json.Unmarshal(fields["type"], &kind); err != nil || (kind != "standard" && kind != "shared") {
+			return fmt.Errorf("invalid auth email provider response type")
+		}
+		if kind == "standard" {
+			_, err = authResponseObject(body, "host", "port", "username", "password", "sender_email", "sender_name")
+			return err
+		}
 	case strings.HasSuffix(path, "/auth/plugins"):
 		fields, err := authResponseObject(body, "magic_link")
 		if err != nil {

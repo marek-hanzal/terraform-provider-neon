@@ -1,3 +1,8 @@
+variable "auth_smtp_password" {
+  type      = string
+  sensitive = true
+}
+
 resource "neon_branch_auth_config" "app" {
   # References order configuration after managed Auth enablement.
   project_id       = neon_branch_auth.app.project_id
@@ -16,6 +21,16 @@ resource "neon_branch_auth_config" "app" {
     enabled                    = true
     email_verification_method  = "otp"
     require_email_verification = true
+  }
+
+  email_provider = {
+    type         = "standard"
+    host         = "smtp.example.com"
+    port         = 465
+    username     = "smtp-user"
+    password     = var.auth_smtp_password
+    sender_email = "login@example.com"
+    sender_name  = "Example App"
   }
 
   trusted_domains = ["https://app.example.com", "https://*.preview.example.com"]

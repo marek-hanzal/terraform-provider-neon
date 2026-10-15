@@ -36,6 +36,7 @@ func authSettingsSchema() map[string]schema.Attribute {
 	return map[string]schema.Attribute{
 		"application_name": schema.StringAttribute{Optional: true, Description: "Application name shown in Auth emails, 1–256 characters. Omit to leave unmanaged.", Validators: []validator.String{authSettingsStringValidator{"application_name"}}},
 		"allow_localhost":  boolean("Allow authentication from localhost origins."),
+		"email_provider":   authEmailProviderSchema(),
 		"trusted_domains":  schema.SetAttribute{Optional: true, ElementType: types.StringType, Description: "Authoritative set of Better Auth redirect origins, including http(s) scheme and no trailing slash. Wildcard hostnames are supported. Omit to leave unmanaged; an empty set removes all Better Auth entries. Other auth providers are untouched.", Validators: []validator.Set{authTrustedDomainsValidator{}}},
 		"magic_link": schema.SingleNestedAttribute{Optional: true, Description: "Managed Magic Link settings. Each omitted field is unmanaged; no defaults are imposed.", Attributes: map[string]schema.Attribute{
 			"enabled":            boolean("Enable passwordless email magic links."),
@@ -73,6 +74,8 @@ func (v authSettingsStringValidator) ValidateString(_ context.Context, req valid
 		valid = utf8.RuneCountInString(s) >= 1 && utf8.RuneCountInString(s) <= 256
 	case "email_verification_method":
 		valid = s == "link" || s == "otp"
+	case "email_provider.type":
+		valid = s == "standard"
 	}
 	if !valid {
 		resp.Diagnostics.AddAttributeError(req.Path, "Invalid Auth Setting", "Invalid "+v.kind+".")
@@ -133,6 +136,11 @@ func (r *branchAuthConfigResource) readSettings(ctx context.Context, model *bran
 		return err
 	}
 	project, branch := url.PathEscape(model.ProjectID.ValueString()), url.PathEscape(model.BranchID.ValueString())
+	if model.EmailProvider != nil {
+		if err := readAuthEmailProvider(client, project, branch, model.EmailProvider); err != nil {
+			return err
+		}
+	}
 	if !model.ApplicationName.IsNull() {
 		if auth.Name == nil {
 			return fmt.Errorf("auth response has no application name for managed application_name")
@@ -217,6 +225,11 @@ func (r *branchAuthConfigResource) applySettings(ctx context.Context, previous, 
 		return err
 	}
 	project, branch := url.PathEscape(plan.ProjectID.ValueString()), url.PathEscape(plan.BranchID.ValueString())
+	if plan.EmailProvider != nil {
+		if err := applyAuthEmailProvider(client, project, branch, previous.EmailProvider, plan.EmailProvider); err != nil {
+			return err
+		}
+	}
 	if plan.MagicLink != nil {
 		old := authMagicLinkModel{}
 		if previous.MagicLink != nil {
