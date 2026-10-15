@@ -1,9 +1,12 @@
 # Terraform Provider Neon
 
-This checkout is the unpublished Serakki fork. Its local provider address is
+This fork is maintained on the long-lived [`codex/serakki`](https://github.com/marek-hanzal/terraform-provider-neon/tree/codex/serakki) branch.
+Its local provider address is
 `marek-hanzal/neon`, pinned to `0.17.0-serakki.3`. See the
 [build and integration guide](docs/guides/serakki-fork.md) for the local mirror,
-Functions, managed Better Auth, custom domains and Bunny DNS example.
+Functions, managed Better Auth and its configuration, custom domains and Bunny DNS example.
+Consumers pin a commit, version and binary digests from this branch; the provider
+is not published to the Terraform Registry.
 
 -----
 

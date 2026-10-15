@@ -6,6 +6,18 @@ page_title: "Serakki fork: local build and integration"
 
 This fork extends official `neondatabase/terraform-provider-neon` with four resources. It is not published to the Terraform Registry. Its local installation address is `registry.terraform.io/marek-hanzal/neon`, version `0.17.0-serakki.3`. The SDK is pinned to `github.com/kislerdm/neon-sdk-go v0.30.1`; the Go module retains its upstream path.
 
+## Maintained fork branch
+
+`codex/serakki` is the long-lived branch for our maintained provider. Keep the normal sibling checkout at `../terraform-provider-neon`; ongoing fork changes belong on this branch. `main` retains the upstream baseline. Separate heads are retained only while needed by open upstream PRs.
+
+```shell
+git clone --branch codex/serakki https://github.com/marek-hanzal/terraform-provider-neon.git ../terraform-provider-neon
+```
+
+Terraform providers are installed by source address and version, not by Git branch. Serakki's `infra/provider.json` records `repository`, `branch: "codex/serakki"`, an exact `commit`, `version`, checkout path and six binary digests. The installer obtains source from this branch and builds the pinned commit into the filesystem mirror. Deploy uses the pinned version and checksums; it does not follow branch HEAD automatically.
+
+Update deliberately: review the new branch commit, bump the provider version for implementation changes, build/verify all six packages, then update the commit/version/digests and Terraform lock together. Documentation-only changes may advance the source commit without changing the binary version/digests. A checkout with local changes or a different commit must fail installation/deploy admission rather than silently switching revisions. Preserve existing version packages in the mirror.
+
 ## Toolchain and build
 
 From this checkout:

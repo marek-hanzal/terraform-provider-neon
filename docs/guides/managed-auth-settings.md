@@ -75,7 +75,7 @@ No cloud Auth settings were changed and no emails were sent during this slice. T
 
 ## Build and integration
 
-Use the new branch/commit and all six digests from the Auth-settings handoff. Keep the existing `.2` checkout and mirror intact until the Serakki owner coordinates the new pin. From the new clean checkout:
+Use the maintained `codex/serakki` branch in the normal sibling `../terraform-provider-neon` checkout. Pin the exact commit/version and all six digests from the Auth-settings handoff; coordinate checkout/pin changes with the Serakki owner and preserve older mirror packages. Terraform continues to install the pinned `marek-hanzal/neon` binary from the local mirror, while the Git branch identifies the source development line. From that clean pinned checkout:
 
 ```shell
 mise trust
