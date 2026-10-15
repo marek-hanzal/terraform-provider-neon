@@ -50,6 +50,17 @@ type backendTestProvider struct {
 	httpClient neon.HTTPClient
 }
 
+// Poll the local mock quickly while preserving its building/active transitions.
+func (p *backendTestProvider) Resources(ctx context.Context) []func() frameworkresource.Resource {
+	factories := p.frameworkProvider.Resources(ctx)
+	for i, factory := range factories {
+		if _, ok := factory().(*functionResource); ok {
+			factories[i] = func() frameworkresource.Resource { return &functionResource{pollInterval: time.Millisecond} }
+		}
+	}
+	return factories
+}
+
 func (p *backendTestProvider) Configure(ctx context.Context, req frameworkprovider.ConfigureRequest, resp *frameworkprovider.ConfigureResponse) {
 	p.frameworkProvider.Configure(ctx, req, resp)
 	if c, ok := resp.ResourceData.(*neonClient); ok {

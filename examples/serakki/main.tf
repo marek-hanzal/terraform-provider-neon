@@ -3,7 +3,7 @@ terraform {
   required_providers {
     neon = {
       source  = "marek-hanzal/neon"
-      version = "= 0.17.0-serakki.2"
+      version = "= 0.17.0-serakki.3"
     }
     bunnynet = {
       source  = "BunnyWay/bunnynet"
@@ -64,6 +64,30 @@ resource "neon_branch_auth" "app" {
   project_id    = neon_project.app.id
   branch_id     = neon_project.app.default_branch_id
   database_name = neon_project.app.database_name
+}
+
+# Optional configuration ownership is separate from Auth enablement.
+resource "neon_branch_auth_config" "app" {
+  project_id       = neon_branch_auth.app.project_id
+  branch_id        = neon_branch_auth.app.branch_id
+  database_name    = neon_branch_auth.app.database_name
+  application_name = "Serakki"
+  allow_localhost  = var.environment == "dev"
+
+  magic_link = {
+    enabled            = true
+    expires_in_minutes = 15
+    disable_sign_up    = false # Allow new user registration.
+  }
+
+  # This configured set owns all Better Auth trusted redirect origins.
+  trusted_domains = var.environment == "dev" ? [
+    "https://studio.dev.serakki.dev",
+    "https://game.dev.serakki.dev",
+    ] : [
+    "https://studio.serakki.dev",
+    "https://game.serakki.dev",
+  ]
 }
 
 resource "neon_function" "api" {

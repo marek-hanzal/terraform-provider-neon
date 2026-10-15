@@ -159,6 +159,7 @@ func (p *frameworkProvider) Resources(_ context.Context) []func() resource.Resou
 		NewFunctionResource,
 		NewCustomBranchDomainResource,
 		NewBranchAuthResource,
+		NewBranchAuthConfigResource,
 	}
 }
 

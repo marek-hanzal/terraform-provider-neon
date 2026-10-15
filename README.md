@@ -1,7 +1,7 @@
 # Terraform Provider Neon
 
 This checkout is the unpublished Serakki fork. Its local provider address is
-`marek-hanzal/neon`, pinned to `0.17.0-serakki.2`. See the
+`marek-hanzal/neon`, pinned to `0.17.0-serakki.3`. See the
 [build and integration guide](docs/guides/serakki-fork.md) for the local mirror,
 Functions, managed Better Auth, custom domains and Bunny DNS example.
 
@@ -86,7 +86,7 @@ Run to compile the provider:
 make build
 ```
 
-It yields `build/<os>_<arch>/terraform-provider-neon_v0.17.0-serakki.2`
+It yields `build/<os>_<arch>/terraform-provider-neon_v0.17.0-serakki.3`
 (with `.exe` on Windows). Run these commands through `mise exec --` after
 `mise install` to use the pinned toolchain.
 

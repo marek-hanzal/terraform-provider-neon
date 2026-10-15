@@ -1,0 +1,35 @@
+---
+page_title: "{{ .Name }} {{ .Type }} - {{.ProviderName}}"
+description: |-
+  {{ .Description }}
+---
+
+# {{ .Name }} ({{ .Type }})
+
+{{ .Description }}
+
+## Example Usage
+
+{{ tffile "examples/resources/neon_branch_auth_config/resource.tf" }}
+
+Create configures an **existing**, Neon-owned Better Auth integration on the requested database. Enable it with `neon_branch_auth` first; references in the example establish the dependency. Manage only one config resource per branch, in one state. Database/branch/project changes replace only the logical config resource. Configuration never calls Auth enable/disable, user/session operations or email-send endpoints.
+
+All settings and nested fields are optional, with no provider defaults. Omitted/null values are unmanaged. Refresh reads actual remote values only for managed fields, so Console changes produce a corrective plan. Removing a field releases ownership without resetting its remote value. An empty nested object owns no fields and sends no PATCH. Explicit `false` is an update. Magic Link `disable_sign_up = false` allows new registrations; `expires_in_minutes` maps to API `expires_in` in **minutes**, from 5 to 1440.
+
+`trusted_domains` is authoritative for Better Auth entries only. Include the scheme and omit paths/trailing slashes. An empty set removes all Better Auth redirect origins; omission leaves them unmanaged. Updates list fresh remote entries, add missing origins before removing obsolete ones, and leave other auth-provider entries unchanged. This supports retry after partial failure without duplicate additions. Avoid other writers managing the same settings during apply.
+
+The resource records the Auth integration ID. A different database, owner, provider or replacement integration fails refresh/update; explicitly remove the old config from state and import the intended integration before taking ownership. Only a missing Auth integration removes this resource from state; a missing settings endpoint is an error. Non-404 errors preserve state. Partial PATCH success is not rolled back: the next refresh reads accepted values and a subsequent apply reconciles the remaining drift. A failed config Create may be tainted by Terraform, but replacing it cannot taint, disable or replace the separate Auth integration.
+
+Destroy only relinquishes management, leaving the remote configuration and all users intact. To disable a feature, set its enabled field to `false` before removing this resource. Removing `neon_branch_auth` separately still disables the integration with `delete_data=false`.
+
+The scope is the managed Neon subset: Magic Link, email/password, redirect origins, localhost and application name. Application name uses the officially documented `/auth/config` endpoint, currently marked `x-internal` in OpenAPI, and is read from `/auth.name`. A missing name or missing managed plugin configuration is an error rather than a guessed default. OAuth credentials, SMTP, phone-number configuration, users, sessions, UI and tenancy are outside this resource. See [API mapping and validation scope](../guides/managed-auth-settings.md).
+
+{{.SchemaMarkdown}}
+
+## Import
+
+```shell
+terraform import neon_branch_auth_config.app "PROJECT_ID/BRANCH_ID/app"
+```
+
+Import records integration ownership and leaves every setting unmanaged. Add only the settings you intend to own to configuration; the next plan/apply sets them in place. No state migration is needed for existing `neon_branch_auth` resources.

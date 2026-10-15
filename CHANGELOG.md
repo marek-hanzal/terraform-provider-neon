@@ -5,6 +5,13 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [v0.17.0-serakki.3] - 2026-10-15 (fork)
+
+### Added
+
+- Add `neon_branch_auth_config` for managed Magic Link, email/password, application name, localhost and trusted redirect origin settings with field-level ownership and drift detection.
+- Keep Auth enablement separate from configuration so failed config creation and config removal never disable or replace the Auth integration.
+
 ## [v0.17.0-serakki.2] - 2026-10-15 (local fork, unpublished)
 
 ### Fixed

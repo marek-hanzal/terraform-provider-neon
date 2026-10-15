@@ -1,6 +1,6 @@
 NAMESPACE ?= marek-hanzal
 NAME := neon
-VERSION ?= 0.17.0-serakki.2
+VERSION ?= 0.17.0-serakki.3
 GOOS ?= $(shell go env GOOS)
 GOARCH ?= $(shell go env GOARCH)
 OS_ARCH := $(GOOS)_$(GOARCH)

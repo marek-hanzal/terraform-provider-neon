@@ -25,7 +25,7 @@ output "auth" {
 }
 ```
 
-The resource manages only enablement of Neon-managed Better Auth. It does not manage users, trusted origins, OAuth providers or email configuration, and does not store the API's `secret_server_key`. Neon allows one integration per branch, even though the resource/import ID also identifies the database.
+The resource manages only enablement of Neon-managed Better Auth. It does not manage users, trusted origins, OAuth providers or email configuration, and does not store the API's `secret_server_key`. Use [`neon_branch_auth_config`](branch_auth_config.md) for selected managed Auth settings. Neon allows one integration per branch, even though the resource/import ID also identifies the database.
 
 Project, branch or database changes require replacement. Destroy disables Auth with `delete_data=false`, retaining the database schema and user data. A different remote database or an unmanaged/non-Better-Auth provider is an error; refresh will not silently adopt it. Existing integrations must be imported.
 
