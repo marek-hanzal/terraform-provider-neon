@@ -89,14 +89,13 @@ func (r *branchAuthConfigResource) Create(ctx context.Context, req resource.Crea
 		resp.Diagnostics.AddError("Unable to Configure Branch Auth Settings", err.Error())
 		return
 	}
-	auth, err = r.get(ctx, plan)
-	if err == nil {
-		err = r.readSettings(ctx, &plan, auth)
-	}
+	_, err = r.get(ctx, plan)
 	if err != nil {
 		resp.Diagnostics.AddError("Unable to Read Branch Auth Settings", err.Error())
 		return
 	}
+	// Apply must retain every known/null planned setting. Read owns remote drift;
+	// an immediate GET can be stale, normalized or contain opaque credentials.
 	resp.Diagnostics.Append(resp.State.Set(ctx, &plan)...)
 }
 
@@ -144,10 +143,7 @@ func (r *branchAuthConfigResource) Update(ctx context.Context, req resource.Upda
 		return
 	}
 	plan.ID, plan.AuthProviderProjectID = state.ID, state.AuthProviderProjectID
-	auth, err := r.get(ctx, plan)
-	if err == nil {
-		err = r.readSettings(ctx, &plan, auth)
-	}
+	_, err = r.get(ctx, plan)
 	if err != nil {
 		resp.Diagnostics.AddError("Unable to Read Updated Branch Auth Settings", err.Error())
 		return

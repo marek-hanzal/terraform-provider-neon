@@ -4,7 +4,7 @@ page_title: "Managed Better Auth settings"
 
 # Managed Better Auth settings
 
-The fork's `0.17.0-serakki.3` release introduced `neon_branch_auth_config` separately from `neon_branch_auth`. `0.17.0-serakki.4` adds custom SMTP management. The existing resource owns Auth enablement; the new resource owns selected settings. Keeping those lifecycles separate means failed configuration cannot force replacement of an Auth integration. Config removal performs no remote writes, while explicit false/empty values update the configured settings.
+The fork's `0.17.0-serakki.3` release introduced `neon_branch_auth_config` separately from `neon_branch_auth`. `0.17.0-serakki.4` adds custom SMTP management; `0.17.0-serakki.5` fixes apply-state consistency and opaque password read-back. The existing resource owns Auth enablement; the new resource owns selected settings. Keeping those lifecycles separate means failed configuration cannot force replacement of an Auth integration. Config removal performs no remote writes, while explicit false/empty values update the configured settings.
 
 ```terraform
 variable "auth_smtp_password" {
@@ -73,7 +73,9 @@ The `/plugins` aggregate can contain OAuth/SMTP credentials depending on permiss
 
 `email_provider.type` is required and accepts only `standard`; each SMTP field can be independently omitted or released. Configure all six fields when first replacing the shared provider. Later updates send only changed managed fields, and Better Auth merges omitted fields server-side. Legacy Stack Auth is refused by the existing integration guard. Removing the SMTP object or entire config resource leaves the remote provider and all Auth users intact.
 
-Host, username and password follow OpenAPI's sensitive classification. Configured credentials are retained in Terraform state, so the state backend must protect them. GET can return the actual stored password to credential-reading callers or an empty redaction to ordinary callers; PATCH always redacts it. The provider detects password drift only when GET reveals a nonempty actual password. Empty read-back preserves the known configured password and is never written back. Unmanaged credentials are never captured by refresh/import. API/decode errors suppress response details because they may contain secrets.
+Host, username and password follow OpenAPI's sensitive classification. Configured credentials remain in Terraform state, so the backend must protect them. The [saved-provider test endpoint](https://api-docs.neon.tech/reference/sendneonauthemailprovidertest) documents masked GET passwords; the response has no reliable discriminator for an authoritative secret echo. Refresh therefore retains the last configured password for every standard response, including nonempty values. Password drift cannot be detected; explicit configuration changes rotate it. Observable managed fields such as hostname, username and sender still expose remote drift. Unmanaged credentials are never captured by refresh/import. API/decode errors suppress response details because they may contain secrets.
+
+Successful Create/Update preserve all known/null planned settings exactly, as required by the Terraform framework. Immediate GET values never overwrite the apply result; ordinary Read owns drift detection. The integration identity is checked again after writes.
 
 If the Console switches the remote provider to `shared`, refresh exposes provider drift and the next corrective apply resends all configured SMTP fields. No SMTP connection or email-send endpoint is called by Terraform. Delivery and live credential acceptance require separate explicit runtime verification.
 
@@ -92,7 +94,7 @@ If the Console switches the remote provider to `shared`, refresh exposes provide
 
 ## Validation boundary
 
-This release is validated through focused HTTP fixtures and real Terraform plan/apply/refresh/import/destroy against `httptest`, plus full unit/race/vet/lint, generated docs, HCL validation and six platform builds. SMTP fixtures additionally cover sensitive-output rejection, redacted GET/PATCH stability, readable password drift, rotation, credential omission, shared-provider drift, errors without credential leakage and identity-guarded updates. Fixtures cover Console-style drift, explicit false and minute boundaries, field-level omission/release, empty objects/sets, identity guards, failed/partial writes and retry. Config-only removal sends no Auth disable call, and existing integration identity remains unchanged through updates and recovery.
+This release is validated through focused HTTP fixtures and real Terraform plan/apply/refresh/import/destroy against `httptest`, plus full unit/race/vet/lint, generated docs, HCL validation and six platform builds. SMTP fixtures additionally cover sensitive-output rejection, redacted GET/PATCH stability, opaque password responses, observable host drift, rotation, credential omission, shared-provider drift, errors without credential leakage and identity-guarded updates. Fixtures cover Console-style drift, explicit false and minute boundaries, field-level omission/release, empty objects/sets, identity guards, failed/partial writes and retry. Config-only removal sends no Auth disable call, and existing integration identity remains unchanged through updates and recovery.
 
 No cloud Auth settings were changed and no emails were sent during this slice. These are mocked lifecycle proofs, not a claim of live settings validation. The existing `.2` Function/Auth/domain live evidence remains separate. OAuth follow-up work needs its own typed credential ownership and read-back tests before implementation.
 
@@ -115,4 +117,4 @@ terraform providers lock -fs-mirror="$neon_provider_checkout/build/mirror" \
   registry.terraform.io/marek-hanzal/neon
 ```
 
-Run Terraform commands in the consuming module, with its existing backend/state and the new checkout's absolute mirror path. Pin `marek-hanzal/neon = 0.17.0-serakki.4`, the exact source commit and all binary digests together. Inspect the plan before a future live apply; updating the provider pin alone should not change existing resources. Add one config resource with references to the already-managed Auth integration rather than creating another Auth resource. No migration or `state replace-provider` is required when retaining the current provider address.
+Run Terraform commands in the consuming module, with its existing backend/state and the new checkout's absolute mirror path. Pin `marek-hanzal/neon = 0.17.0-serakki.5`, the exact source commit and all binary digests together. Inspect the plan before a future live apply; updating the provider pin alone should not change existing resources. Add one config resource with references to the already-managed Auth integration rather than creating another Auth resource. No migration or `state replace-provider` is required when retaining the current provider address.

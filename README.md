@@ -2,7 +2,7 @@
 
 This fork is maintained on the long-lived [`codex/serakki`](https://github.com/marek-hanzal/terraform-provider-neon/tree/codex/serakki) branch.
 Its local provider address is
-`marek-hanzal/neon`, pinned to `0.17.0-serakki.4`. See the
+`marek-hanzal/neon`, pinned to `0.17.0-serakki.5`. See the
 [build and integration guide](docs/guides/serakki-fork.md) for the local mirror,
 Functions, managed Better Auth and its configuration, custom domains and Bunny DNS example.
 Consumers pin a commit, version and binary digests from this branch; the provider
@@ -89,7 +89,7 @@ Run to compile the provider:
 make build
 ```
 
-It yields `build/<os>_<arch>/terraform-provider-neon_v0.17.0-serakki.4`
+It yields `build/<os>_<arch>/terraform-provider-neon_v0.17.0-serakki.5`
 (with `.exe` on Windows). Run these commands through `mise exec --` after
 `mise install` to use the pinned toolchain.
 

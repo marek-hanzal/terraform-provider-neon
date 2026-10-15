@@ -27,7 +27,7 @@ func authEmailProviderSchema() schema.SingleNestedAttribute {
 		"host":         schema.StringAttribute{Optional: true, Sensitive: true, Description: "SMTP server hostname. Omit to leave unmanaged."},
 		"port":         schema.Int64Attribute{Optional: true, Description: "SMTP TCP port, 1–65535. Common values: 465 or 587. Omit to leave unmanaged.", Validators: []validator.Int64{authSMTPPortValidator{}}},
 		"username":     schema.StringAttribute{Optional: true, Sensitive: true, Description: "SMTP username. Omit to leave unmanaged."},
-		"password":     schema.StringAttribute{Optional: true, Sensitive: true, Description: "SMTP password. Stored in Terraform state when configured. A redacted GET preserves the known value; password drift is detectable only when Neon returns the stored password. Omit to leave unmanaged."},
+		"password":     schema.StringAttribute{Optional: true, Sensitive: true, Description: "SMTP password. Stored in Terraform state when configured. GET is not a reliable password echo; refresh retains the last configured value and cannot detect password drift. Omit to leave unmanaged."},
 		"sender_email": schema.StringAttribute{Optional: true, Description: "From address for Auth emails. Omit to leave unmanaged."},
 		"sender_name":  schema.StringAttribute{Optional: true, Description: "Sender display name for Auth emails. Omit to leave unmanaged."},
 	}}
@@ -93,11 +93,8 @@ func readAuthEmailProvider(client *neon.Client, project, branch string, target *
 	if !target.Port.IsNull() {
 		target.Port = types.Int64Value(int64(v.Port))
 	}
-	// Empty GET passwords are redacted, not a replacement credential. A real
-	// password is projected only when this field was already managed.
-	if v.Password != "" {
-		target.Password = authManagedString(target.Password, v.Password)
-	}
+	// GET can return an opaque/masked password without an authoritative echo
+	// discriminator. Preserve managed state; never turn a response into a credential.
 	return nil
 }
 

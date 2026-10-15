@@ -5,6 +5,14 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [v0.17.0-serakki.5] - 2026-10-15 (fork)
+
+### Fixed
+
+- Preserve known and null Auth settings from the Terraform plan after successful Create/Update; immediate GET responses can no longer replace sensitive planned values.
+- Retain the last configured SMTP password during standard-provider refresh because GET can return masked or opaque credentials. Observable managed fields still expose drift; omitted/imported credentials remain unmanaged.
+- Reproduce nonempty password read-back and stale managed-host responses through real Terraform Create/Update lifecycles without changing Auth integration identity or users.
+
 ## [v0.17.0-serakki.4] - 2026-10-15 (fork)
 
 ### Added

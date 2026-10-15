@@ -29,7 +29,7 @@ const authSMTPFullSettings = `email_provider = {
 }`
 
 // Redacted GET/PATCH must not erase or resend a configured password. Real GET
-// credentials reveal drift; releasing/importing ownership must not capture them.
+// responses are not password echoes; releasing/importing ownership must not capture them.
 func TestBranchAuthEmailProviderTerraformLifecycle(t *testing.T) {
 	m := newAuthSettingsMock(t)
 	server := httptest.NewServer(m)
@@ -73,8 +73,9 @@ func TestBranchAuthEmailProviderTerraformLifecycle(t *testing.T) {
 			m.smtp["host"] = "console.example.com"
 		}, Config: rotated, PlanOnly: true, ExpectNonEmptyPlan: true},
 		{Config: rotated, Check: check(func(_ *terraform.State) {
-			require.Equal(t, "rotated-secret", m.smtp["password"])
+			require.Equal(t, "console-secret", m.smtp["password"])
 			require.Equal(t, "smtp.example.com", m.smtp["host"])
+			require.NotContains(t, m.calls[len(m.calls)-1].body, "password")
 		})},
 		{Config: partial, Check: check(func(state *terraform.State) {
 			require.Equal(t, map[string]any{"type": "standard", "sender_name": "Changed"}, m.calls[len(m.calls)-1].body)
@@ -118,6 +119,42 @@ func TestBranchAuthEmailProviderTerraformLifecycle(t *testing.T) {
 			require.Equal(t, "smtp-secret", m.smtp["password"])
 		})},
 	}})
+}
+
+// Terraform, rather than a model-only assertion, enforces the known sensitive
+// plan value. The host case additionally leaves observable drift visible to Read.
+func TestBranchAuthEmailProviderApplyPreservesSensitivePlan(t *testing.T) {
+	for _, tc := range []struct {
+		name, field, response string
+		drift                 bool
+	}{
+		{"opaque password response", "password", "opaque-response-value", false},
+		{"stale managed hostname", "host", "stale.example.com", true},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			m := newAuthSettingsMock(t)
+			m.smtpResponseOverrides = map[string]any{tc.field: tc.response}
+			server := httptest.NewServer(m)
+			defer server.Close()
+			full := authSettingsConfig(authSMTPFullSettings)
+			check := func(password string) resource.TestCheckFunc {
+				return func(state *terraform.State) error {
+					m.mu.Lock()
+					defer m.mu.Unlock()
+					attrs := state.RootModule().Resources["neon_branch_auth_config.settings"].Primary.Attributes
+					require.Equal(t, password, attrs["email_provider.password"])
+					require.Equal(t, "smtp.example.com", attrs["email_provider.host"])
+					require.Equal(t, 1, m.creates)
+					require.Zero(t, m.deletes)
+					return nil
+				}
+			}
+			resource.UnitTest(t, resource.TestCase{ProtoV6ProviderFactories: backendFactories(server), Steps: []resource.TestStep{
+				{Config: full, ExpectNonEmptyPlan: tc.drift, Check: check("smtp-secret")},
+				{Config: strings.Replace(full, "smtp-secret", "rotated-secret", 1), ExpectNonEmptyPlan: tc.drift, Check: check("rotated-secret")},
+			}})
+		})
+	}
 }
 
 func smtpManagedModel() branchAuthConfigModel {

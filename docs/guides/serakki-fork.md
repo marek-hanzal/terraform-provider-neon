@@ -4,7 +4,7 @@ page_title: "Serakki fork: local build and integration"
 
 # Serakki fork: local build and integration
 
-This fork extends official `neondatabase/terraform-provider-neon` with four resources. It is not published to the Terraform Registry. Its local installation address is `registry.terraform.io/marek-hanzal/neon`, version `0.17.0-serakki.4`. The SDK is pinned to `github.com/kislerdm/neon-sdk-go v0.30.1`; the Go module retains its upstream path.
+This fork extends official `neondatabase/terraform-provider-neon` with four resources. It is not published to the Terraform Registry. Its local installation address is `registry.terraform.io/marek-hanzal/neon`, version `0.17.0-serakki.5`. The SDK is pinned to `github.com/kislerdm/neon-sdk-go v0.30.1`; the Go module retains its upstream path.
 
 ## Maintained fork branch
 
@@ -67,7 +67,7 @@ terraform {
   required_providers {
     neon = {
       source  = "marek-hanzal/neon"
-      version = "= 0.17.0-serakki.4"
+      version = "= 0.17.0-serakki.5"
     }
     bunnynet = {
       source  = "BunnyWay/bunnynet"

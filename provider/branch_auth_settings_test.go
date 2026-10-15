@@ -39,6 +39,7 @@ type authSettingsMock struct {
 	magic, email              map[string]any
 	smtp                      map[string]any
 	redactSMTPPassword        bool
+	smtpResponseOverrides     map[string]any
 	localhost                 bool
 	domains                   map[string]map[string]bool
 	calls                     []authSettingsCall
@@ -110,6 +111,9 @@ func (m *authSettingsMock) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 			}
 			if m.redactSMTPPassword && values["type"] == "standard" {
 				values["password"] = ""
+			}
+			for key, value := range m.smtpResponseOverrides {
+				values[key] = value
 			}
 			respond(values)
 		case "/allow_localhost":
