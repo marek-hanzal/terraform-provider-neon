@@ -160,6 +160,7 @@ func (p *frameworkProvider) Resources(_ context.Context) []func() resource.Resou
 		NewCustomBranchDomainResource,
 		NewBranchAuthResource,
 		NewBranchAuthConfigResource,
+		NewBranchAuthWebhookResource,
 	}
 }
 

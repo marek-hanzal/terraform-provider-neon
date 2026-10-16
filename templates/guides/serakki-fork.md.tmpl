@@ -4,7 +4,7 @@ page_title: "Serakki fork: local build and integration"
 
 # Serakki fork: local build and integration
 
-This fork extends official `neondatabase/terraform-provider-neon` with four resources. It is not published to the Terraform Registry. Its local installation address is `registry.terraform.io/marek-hanzal/neon`, version `0.17.0-serakki.5`. The SDK is pinned to `github.com/kislerdm/neon-sdk-go v0.30.1`; the Go module retains its upstream path.
+This fork extends official `neondatabase/terraform-provider-neon` with five resources. It is not published to the Terraform Registry. Its local installation address is `registry.terraform.io/marek-hanzal/neon`, version `0.17.0-serakki.6`. The SDK is pinned to `github.com/kislerdm/neon-sdk-go v0.30.1`; the Go module retains its upstream path.
 
 ## Maintained fork branch
 
@@ -14,9 +14,9 @@ This fork extends official `neondatabase/terraform-provider-neon` with four reso
 git clone --branch codex/serakki https://github.com/marek-hanzal/terraform-provider-neon.git ../terraform-provider-neon
 ```
 
-Terraform providers are installed by source address and version, not by Git branch. Serakki's `infra/provider.json` records `repository`, `branch: "codex/serakki"`, an exact `commit`, `version`, checkout path and six binary digests. The installer obtains source from this branch and builds the pinned commit into the filesystem mirror. Deploy uses the pinned version and checksums; it does not follow branch HEAD automatically.
+Terraform providers are installed by source address and version, not by Git branch. Serakki's `infra/provider/neon.json` pins a published GitHub release, exact source commit and raw executable SHA-256 values for macOS amd64/arm64 and Linux amd64. Its installer downloads and verifies those artifacts; ordinary deployment never compiles this sibling checkout or follows branch HEAD.
 
-Update deliberately: review the new branch commit, bump the provider version for implementation changes, build/verify all six packages, then update the commit/version/digests and Terraform lock together. Documentation-only changes may advance the source commit without changing the binary version/digests. A checkout with local changes or a different commit must fail installation/deploy admission rather than silently switching revisions. Preserve existing version packages in the mirror.
+Update deliberately: review and test the new provider commit, bump the version, build reproducible binaries and publish an immutable release before updating Serakki's manifest, exact HCL constraint and Terraform lockfile together. Preserve existing release artifacts and mirror packages. Local mirror builds below are for standalone provider development and isolated validation, not a deployment fallback.
 
 ## Toolchain and build
 
@@ -37,17 +37,17 @@ export TF_CLI_CONFIG_FILE="$PWD/build/terraform.rc"
 
 The supported fork build targets are `darwin_amd64`, `darwin_arm64`, `linux_amd64`, `linux_arm64`, `windows_amd64`, and `windows_arm64`. Run `mise run crossbuild` to populate all six packages under `build/mirror`. Cross-compilation is checked locally; execution is checked on the development host. On Windows, use the WSL build environment and select the Windows target for native Terraform, or run Terraform entirely inside WSL with the Linux target.
 
-Use the same built mirror and source commit for all consumers of this unpublished version. Preserve and verify the binary SHA256 manifest handed off with the build. A changed implementation must get a new local version after handoff; do not overwrite a version already locked by Serakki.
+Use the same source commit and reproducible binaries for release artifacts. Preserve their SHA256 manifest. A changed implementation requires a new version; never overwrite a release already pinned by a consumer.
 
 ## Prebuilt function archive
 
-Serakki builds its Hono default `fetch` handler with `argc web-build dev`, yielding `.out/web/dev/api/index.mjs`. Build TypeScript and bundle dependencies before Terraform planning. The provider uploads the archive; it does not transpile source or install dependencies.
+Serakki's Terraform compiler builds its root Start/Nitro default `fetch` handler and Archive creates a deterministic root-entry ZIP before Function deployment. The standalone `argc build-web dev` command also prepares current source. The provider uploads the prepared archive; it does not transpile source or install dependencies.
 
 From the provider checkout, package the already-built bundle deterministically:
 
 ```shell
 mise exec -- go run ./cmd/function-zip \
-  -input ../serakki/.out/web/dev/api/index.mjs \
+  -input ../serakki/.out/web-build/dev/server/index.mjs \
   -output build/serakki-api.zip
 ```
 
@@ -105,3 +105,7 @@ The public Neon OpenAPI snapshot and SDK v0.30.1 support the requested functions
 The implementation was informed by the function draft `fa8f99b9570861b3843038e4390b2df8d4726b80` and domain draft `b19cbf8cce81f6d51f04ab6c82597ed12a78191a`, without cherry-picking them. It fixes the draft's map conversion, missing code digest, destructive code/env updates, absent deployment wait and incomplete domain read state handling. Tests cover env deletion, import, drift, failed deployments, cancellation, supersession, HTTP error state preservation and cross-database Auth refusal.
 
 References: [Functions issue #29](https://github.com/neondatabase/terraform-provider-neon/issues/29), [domains issue #36](https://github.com/neondatabase/terraform-provider-neon/issues/36), [Auth issue #42](https://github.com/neondatabase/terraform-provider-neon/issues/42), [Functions API](https://neon.com/docs/reference/api/functions), [Auth API](https://neon.com/docs/reference/api/auth), [OpenAPI](https://d216pytvakpmhr.cloudfront.net/api_spec/main/v2.json).
+
+## Managed Auth webhook
+
+[`neon_branch_auth_webhook`](../resources/branch_auth_webhook.md) owns webhook delivery independently from Auth enablement and feature settings. Deploy the HTTPS handler before enabling mail events; Destroy disables the webhook before handler teardown. This avoids a config/Function dependency cycle and preserves managed SMTP as the fallback.

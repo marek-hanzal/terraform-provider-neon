@@ -4,7 +4,7 @@ page_title: "Managed Better Auth settings"
 
 # Managed Better Auth settings
 
-The fork's `0.17.0-serakki.3` release introduced `neon_branch_auth_config` separately from `neon_branch_auth`. `0.17.0-serakki.4` adds custom SMTP management; `0.17.0-serakki.5` fixes apply-state consistency and opaque password read-back. The existing resource owns Auth enablement; the new resource owns selected settings. Keeping those lifecycles separate means failed configuration cannot force replacement of an Auth integration. Config removal performs no remote writes, while explicit false/empty values update the configured settings.
+The fork's `0.17.0-serakki.3` release introduced `neon_branch_auth_config` separately from `neon_branch_auth`. `0.17.0-serakki.4` adds custom SMTP management; `0.17.0-serakki.5` fixes apply-state consistency and opaque password read-back. `0.17.0-serakki.6` adds the separate [`neon_branch_auth_webhook`](../resources/branch_auth_webhook.md) lifecycle. The existing resource owns Auth enablement; the new resource owns selected settings. Keeping those lifecycles separate means failed configuration cannot force replacement of an Auth integration. Config removal performs no remote writes, while explicit false/empty values update the configured settings.
 
 {{ tffile "examples/resources/neon_branch_auth_config/resource.tf" }}
 
@@ -79,4 +79,4 @@ terraform providers lock -fs-mirror="$neon_provider_checkout/build/mirror" \
   registry.terraform.io/marek-hanzal/neon
 ```
 
-Run Terraform commands in the consuming module, with its existing backend/state and the new checkout's absolute mirror path. Pin `marek-hanzal/neon = 0.17.0-serakki.5`, the exact source commit and all binary digests together. Inspect the plan before a future live apply; updating the provider pin alone should not change existing resources. Add one config resource with references to the already-managed Auth integration rather than creating another Auth resource. No migration or `state replace-provider` is required when retaining the current provider address.
+Run Terraform commands in the consuming module, with its existing backend/state and the new checkout's absolute mirror path. Pin `marek-hanzal/neon = 0.17.0-serakki.6`, the exact source commit and all binary digests together. Inspect the plan before a future live apply; updating the provider pin alone should not change existing resources. Add one config resource with references to the already-managed Auth integration rather than creating another Auth resource. No migration or `state replace-provider` is required when retaining the current provider address.

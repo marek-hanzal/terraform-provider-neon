@@ -1,0 +1,19 @@
+---
+page_title: "{{.Name}} Resource - terraform-provider-neon"
+description: |-
+  {{ .Description | plainmarkdown }}
+---
+
+# {{.Name}} (Resource)
+
+{{.Description}}
+
+{{tffile "examples/resources/neon_branch_auth_webhook/resource.tf"}}
+
+Managed Better Auth exposes one webhook configuration per branch. This resource owns its complete configuration independently from `neon_branch_auth_config`. Reference a deployed Function URL to enable delivery only after its handler exists. Native Function URLs require no custom-domain DNS/TLS dependency; email links can still use the application's public domain.
+
+Create and Update use native PUT, Read uses GET, and Destroy uses PUT with `enabled = false`, restoring built-in mail delivery before the handler is torn down. No account/session operations or test emails are performed. A changed Auth integration identity fails refresh/update/destroy rather than configuring or disabling another integration. Import uses `PROJECT_ID/BRANCH_ID/DATABASE_NAME`.
+
+Neon retries blocking mail events at most three times within a total of 15 seconds. The handler must be idempotent on the signed event ID and must acknowledge only after its transport accepts the email. HTTPS, public DNS and no redirect are enforced by Neon. Enabling mail events replaces their managed email delivery.
+
+{{ .SchemaMarkdown | trimspace }}
